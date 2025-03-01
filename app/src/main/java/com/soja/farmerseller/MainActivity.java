@@ -12,6 +12,8 @@ import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.Fragment;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.google.firebase.FirebaseApp;
+import com.google.firebase.firestore.FirebaseFirestore;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -23,6 +25,8 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         bottom_nav = findViewById(R.id.bottom_nav);
 
+        FirebaseApp.initializeApp(this);
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
 
 
         bottom_nav.setOnNavigationItemSelectedListener(new BottomNavigationView.OnNavigationItemSelectedListener() {
@@ -34,7 +38,7 @@ public class MainActivity extends AppCompatActivity {
                 if (id == R.id.nav_home) {
                     getSupportFragmentManager().beginTransaction().replace(R.id.main, new HomeFragment()).commit();
                 }else if(id == R.id.nav_addItems){
-                    getSupportFragmentManager().beginTransaction().replace(R.id.main, new AddItemsFragment()).commit();
+                    getSupportFragmentManager().beginTransaction().replace(R.id.main, new AddItemFragment()).commit();
                 }else if(id == R.id.nav_notification) {
                     getSupportFragmentManager().beginTransaction().replace(R.id.main, new NotificationsFragment()).commit();
                 }else{
