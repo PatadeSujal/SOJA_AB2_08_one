@@ -24,7 +24,9 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.SetOptions;
 import com.soja.farmerseller.R;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -100,19 +102,24 @@ public class AddItemFragment extends Fragment {
             return;
         }
 
-//        progressBar.setVisibility(View.VISIBLE);
-
         try {
-            byte[] imageData = null;
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                imageData = getContext().getContentResolver().openInputStream(imageUri).readAllBytes();
+            // Read image data using InputStream for all Android versions
+            InputStream inputStream = getContext().getContentResolver().openInputStream(imageUri);
+            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+            byte[] buffer = new byte[1024];
+            int bytesRead;
+            while ((bytesRead = inputStream.read(buffer)) != -1) {
+                byteArrayOutputStream.write(buffer, 0, bytesRead);
             }
+            byte[] imageData = byteArrayOutputStream.toByteArray();
+            inputStream.close();
 
             OkHttpClient client = new OkHttpClient();
             RequestBody requestBody = new MultipartBody.Builder()
                     .setType(MultipartBody.FORM)
                     .addFormDataPart("key", IMGBB_API_KEY)
-                    .addFormDataPart("image", "product.jpg", RequestBody.create(imageData, MediaType.parse("image/*")))
+                    .addFormDataPart("image", "product.jpg",
+                            RequestBody.create(imageData, MediaType.parse("image/*")))
                     .build();
 
             Request request = new Request.Builder()
@@ -124,8 +131,7 @@ public class AddItemFragment extends Fragment {
                 @Override
                 public void onFailure(@NonNull Call call, @NonNull IOException e) {
                     getActivity().runOnUiThread(() -> {
-//                        progressBar.setVisibility(View.GONE);
-                        Toast.makeText(getContext(), "Image upload failed", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(getContext(), "Image upload failed: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                     });
                 }
 
@@ -134,11 +140,16 @@ public class AddItemFragment extends Fragment {
                     if (response.isSuccessful()) {
                         String responseBody = response.body().string();
                         String imageUrl = extractImageUrl(responseBody);
-                        saveProductToFirestore("newProduct",imageUrl);
+                        if (imageUrl != null) {
+                            saveProductToFirestore(imageUrl, imageUrl);
+                        } else {
+                            getActivity().runOnUiThread(() -> {
+                                Toast.makeText(getContext(), "Failed to get image URL", Toast.LENGTH_SHORT).show();
+                            });
+                        }
                     } else {
                         getActivity().runOnUiThread(() -> {
-//                            progressBar.setVisibility(View.GONE);
-                            Toast.makeText(getContext(), "Failed to upload image", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(getContext(), "Server error: " + response.code(), Toast.LENGTH_SHORT).show();
                         });
                     }
                 }
@@ -146,8 +157,14 @@ public class AddItemFragment extends Fragment {
 
         } catch (IOException e) {
             e.printStackTrace();
-//            progressBar.setVisibility(View.GONE);
-            Toast.makeText(getContext(), "Error selecting image", Toast.LENGTH_SHORT).show();
+            getActivity().runOnUiThread(() -> {
+                Toast.makeText(getContext(), "Error reading image: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            });
+        } catch (Exception e) {
+            e.printStackTrace();
+            getActivity().runOnUiThread(() -> {
+                Toast.makeText(getContext(), "Unexpected error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            });
         }
     }
 
@@ -162,50 +179,58 @@ public class AddItemFragment extends Fragment {
     }
 
     private void saveProductToFirestore(String productId, String imageUrl) {
-        if (getContext() == null) return; // Prevent null context crash
-
         String name = productName.getText().toString().trim();
         String description = productDescription.getText().toString().trim();
         String price = productPrice.getText().toString().trim();
 
-        if (name.isEmpty() || description.isEmpty() || price.isEmpty() || imageUrl == null || imageUrl.isEmpty()) {
+        if (name.isEmpty() || description.isEmpty() || price.isEmpty()) {
             Toast.makeText(getContext(), "All fields are required!", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        // Prepare product details array
-        List<String> productDetails = Arrays.asList(name, description, price, imageUrl);
+        // Create product data array
+        List<String> productData = Arrays.asList(
+                name,
+                description,
+                price,
+                imageUrl
+        );
 
-        // 🔥 Firestore Reference
-        FirebaseFirestore db = FirebaseFirestore.getInstance();
-        DocumentReference docRef = db.collection("SellerDetails").document("Products");
+        // Create update object
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("productId." + productId, productData);
 
-        // 🔄 Try to update the existing document
-        docRef.update(productId, FieldValue.arrayUnion(productDetails))
+        db.collection("SellerDetails").document("Products")
+                .update(updates)
                 .addOnSuccessListener(aVoid -> {
-                    if (getActivity() != null) getActivity().runOnUiThread(() ->
-                            Toast.makeText(getContext(), "Product added successfully!", Toast.LENGTH_SHORT).show()
-                    );
+                    clearForm();
+                    Toast.makeText(getContext(), "Product added successfully!", Toast.LENGTH_SHORT).show();
                 })
                 .addOnFailureListener(e -> {
-                    // 🔄 If document doesn't exist, create it
-                    Map<String, Object> newProduct = new HashMap<>();
-                    newProduct.put(productId, productDetails);
+                    // If document doesn't exist, create it first
+                    Map<String, Object> initialData = new HashMap<>();
+                    initialData.put("productId", new HashMap<>());
+                    initialData.put("productId." + productId, productData);
 
-                    docRef.set(newProduct, SetOptions.merge())
+                    db.collection("SellerDetails").document("Products")
+                            .set(initialData, SetOptions.merge())
                             .addOnSuccessListener(aVoid -> {
-                                if (getActivity() != null) getActivity().runOnUiThread(() ->
-                                        Toast.makeText(getContext(), "Product added successfully!", Toast.LENGTH_SHORT).show()
-                                );
+                                clearForm();
+                                Toast.makeText(getContext(), "Product added successfully!", Toast.LENGTH_SHORT).show();
                             })
                             .addOnFailureListener(ex -> {
-                                if (getActivity() != null) getActivity().runOnUiThread(() ->
-                                        Toast.makeText(getContext(), "Failed to add product!", Toast.LENGTH_SHORT).show()
-                                );
+                                Toast.makeText(getContext(), "Error: " + ex.getMessage(), Toast.LENGTH_SHORT).show();
                             });
                 });
     }
 
+    private void clearForm() {
+        productName.setText("");
+        productDescription.setText("");
+        productPrice.setText("");
+        productImage.setImageResource(R.drawable.ic_launcher_background);
+        imageUri = null;
+    }
 
 
 }
