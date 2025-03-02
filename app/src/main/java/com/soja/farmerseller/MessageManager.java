@@ -7,7 +7,7 @@ public class MessageManager {
     private String msg;
     private Timestamp timestamp;
 
-    public MessageManager(String sender, String msg, Timestamp timestamp) {
+    public MessageManager(Timestamp timestamp, String msg,String sender ) {
         this.sender = sender;
         this.msg = msg;
         this.timestamp = timestamp;

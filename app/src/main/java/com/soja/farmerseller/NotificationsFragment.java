@@ -22,7 +22,9 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.firebase.Timestamp;
 import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.EventListener;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.FirebaseFirestoreException;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -38,6 +40,7 @@ public class NotificationsFragment extends Fragment {
     private Button sendButton;
     private String senderEmail;
     private String chatDocId;
+    private LinearLayout layoutContainer;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -46,10 +49,10 @@ public class NotificationsFragment extends Fragment {
         // Initialize SharedPreferences correctly
         SharedPreferences sharedPreferences = requireActivity().getSharedPreferences("UserPrefs", Context.MODE_PRIVATE);
         senderEmail = sharedPreferences.getString("user_email", "default_email@gmail.com");
-        String receiverEmail = "user@example.com";
+        String receiverEmail = "ab@gmail.com"; // Change this dynamically if needed
         chatDocId = senderEmail + "x" + receiverEmail;
 
-        // Inflate message_layout and attach dynamically
+        // Inflate message layout dynamically
         View messageLayout = inflater.inflate(R.layout.message_layout, container, false);
 
         // Initialize UI components
@@ -60,7 +63,7 @@ public class NotificationsFragment extends Fragment {
         sendButton = messageLayout.findViewById(R.id.sendButton);
 
         // Ensure layoutContainer exists in XML
-        LinearLayout layoutContainer = view.findViewById(R.id.layoutContainer);
+        layoutContainer = view.findViewById(R.id.layoutContainer);
         if (layoutContainer != null) {
             layoutContainer.addView(messageLayout);
         } else {
@@ -75,8 +78,8 @@ public class NotificationsFragment extends Fragment {
         chatAdapter = new ChatAdapter(getContext(), chatList);
         messageRecycler.setAdapter(chatAdapter);
 
-        // Fetch messages
-        fetchChatMessages();
+        // Start real-time listener for messages
+        listenForChatUpdates();
 
         // Send button listener
         sendButton.setOnClickListener(v -> {
@@ -91,54 +94,75 @@ public class NotificationsFragment extends Fragment {
         return view;
     }
 
-    private void fetchChatMessages() {
+    // 🔥 Real-time Firestore listener for chat messages
+    private void listenForChatUpdates() {
         db.collection("Chat").document(chatDocId)
-                .get()
-                .addOnSuccessListener(documentSnapshot -> {
-                    if (documentSnapshot.exists()) {
-                        chatList.clear();
-                        Map<String, Object> chatData = documentSnapshot.getData();
-                        if (chatData != null) {
-                            for (Map.Entry<String, Object> entry : chatData.entrySet()) {
-                                if (entry.getValue() instanceof Map) {
-                                    Map<String, Object> messageData = (Map<String, Object>) entry.getValue();
-
-                                    if (messageData.get("Sender") != null && !messageData.get("Sender").toString().equals("patadesujal@gmail.com")) {
-                                        String sender = messageData.get("Sender").toString();
-                                        String msg = messageData.get("msg") != null ? messageData.get("msg").toString() : "";
-                                        Timestamp timestamp = messageData.get("Timestamp") instanceof Timestamp ? (Timestamp) messageData.get("Timestamp") : null;
-
-                                        chatList.add(new MessageManager(sender, msg, timestamp));
-                                    }
-                                }
-                            }
+                .addSnapshotListener(new EventListener<DocumentSnapshot>() {
+                    @Override
+                    public void onEvent(@Nullable DocumentSnapshot documentSnapshot, @Nullable FirebaseFirestoreException e) {
+                        if (e != null) {
+                            Log.e("Firestore", "Error listening to messages: " + e.getMessage());
+                            return;
                         }
 
-                        // Sort messages by timestamp
-                        chatList.sort((m1, m2) -> m1.getTimestamp().compareTo(m2.getTimestamp()));
+                        if (documentSnapshot != null && documentSnapshot.exists()) {
+                            chatList.clear();
+                            Map<String, Object> chatData = documentSnapshot.getData();
+                            if (chatData != null) {
+                                for (Map.Entry<String, Object> entry : chatData.entrySet()) {
+                                    Toast.makeText(getContext(), chatDocId, Toast.LENGTH_SHORT).show();
+                                    if (entry.getValue() instanceof Map) {
+                                        Map<String, Object> messageData = (Map<String, Object>) entry.getValue();
+                                        if (messageData.get("sender") != null) {
+                                            String sender = messageData.get("sender").toString();
+                                            String msg = messageData.get("msg") != null ? messageData.get("msg").toString() : "";
+                                            Timestamp timestamp = messageData.get("Timestamp") instanceof Timestamp ? (Timestamp) messageData.get("Timestamp") : null;
 
-                        chatAdapter.notifyDataSetChanged();
-                    } else {
-                        Log.d(TAG, "No messages found");
+                                            chatList.add(new MessageManager(timestamp, msg, sender));
+                                        }
+                                    }
+
+                                }
+                            }
+
+                            // Sort messages by timestamp
+                            chatList.sort((m1, m2) -> m1.getTimestamp().compareTo(m2.getTimestamp()));
+
+                            chatAdapter.notifyDataSetChanged();
+                        } else {
+                            Log.d(TAG, "No messages found");
+                        }
                     }
-                })
-                .addOnFailureListener(e -> Log.e("Firestore", "Error fetching messages: " + e.getMessage()));
+                });
     }
 
+    // ✅ Send message to Firestore
     private void sendMessage(String messageText) {
         db.collection("Chat").document(chatDocId)
                 .get()
                 .addOnSuccessListener(documentSnapshot -> {
                     Map<String, Object> chatData = documentSnapshot.exists() ? documentSnapshot.getData() : new HashMap<>();
 
+                    // Determine the next message ID
+                    int nextMessageId = 1; // Default to 1 if no messages exist
+                    for (String key : chatData.keySet()) {
+                        try {
+                            int messageId = Integer.parseInt(key);
+                            if (messageId >= nextMessageId) {
+                                nextMessageId = messageId + 1; // Increment the highest found ID
+                            }
+                        } catch (NumberFormatException ignored) {
+                            // Ignore non-numeric keys
+                        }
+                    }
+
                     // Create new message
-                    String messageId = String.valueOf(chatData.size());
                     Map<String, Object> newMessage = new HashMap<>();
-                    newMessage.put("Sender", senderEmail); // Fix inconsistent key
+                    newMessage.put("sender", senderEmail);
                     newMessage.put("msg", messageText);
                     newMessage.put("Timestamp", Timestamp.now());
 
-                    chatData.put(messageId, newMessage);
+                    chatData.put(String.valueOf(nextMessageId), newMessage); // Store message with numeric key
 
                     // Update Firestore
                     db.collection("Chat").document(chatDocId)
@@ -146,12 +170,10 @@ public class NotificationsFragment extends Fragment {
                             .addOnSuccessListener(aVoid -> {
                                 messageInput.setText(""); // Clear input field
                                 Toast.makeText(getContext(), "Message Sent!", Toast.LENGTH_SHORT).show();
-                                fetchChatMessages(); // Refresh chat
                             })
                             .addOnFailureListener(e -> Log.e("Firestore", "Error sending message: " + e.getMessage()));
                 })
                 .addOnFailureListener(e -> Log.e("Firestore", "Error fetching chat: " + e.getMessage()));
     }
+
 }
-
-
