@@ -21,7 +21,7 @@
             android:exported="false" />
         <activity
             android:name=".Registration"
-            android:exported="false">
+            android:exported="true">
 
 
         </activity>

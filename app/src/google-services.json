@@ -7,6 +7,25 @@
   "client": [
     {
       "client_info": {
+        "mobilesdk_app_id": "1:829445494848:android:336b51d21796c032eae7a5",
+        "android_client_info": {
+          "package_name": "com.soja.consumerapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAl7JheDyG2Zlj7Gt1B_IonFq54rrWQ95s"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
         "mobilesdk_app_id": "1:829445494848:android:ec0a16d4628f1997eae7a5",
         "android_client_info": {
           "package_name": "com.soja.farmerseller"

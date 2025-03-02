@@ -1,14 +1,71 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".ProfileFragment">
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:background="@color/black"
+    android:fitsSystemWindows="true"
+    android:layout_marginBottom="70dp"
+    android:id="@+id/profile_fragment">
 
     <!-- TODO: Update blank fragment layout -->
     <TextView
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:text="@string/hello_blank_fragment" />
+        android:textColor="@color/text_color"
+        android:layout_height="wrap_content"
+        android:textSize="34sp"
+        android:textStyle="bold"
+        android:padding="33dp"
+        android:id="@+id/title"
+        android:text="Profile" />
 
-</FrameLayout>
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:gravity="center"
+        android:id="@+id/linearLayout1"
+        android:orientation="vertical"
+        android:layout_below="@+id/title"
+        android:scrollbars="vertical"
+        android:layout_height="wrap_content">
+
+        <com.google.android.material.imageview.ShapeableImageView
+            android:id="@+id/profileImage"
+            android:layout_width="100dp"
+            android:layout_height="100dp"
+            android:src="@drawable/googleg_disabled_color_18"
+            app:strokeColor="@color/black"
+            app:strokeWidth="2dp"
+            />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="DWC"
+            android:textColor="@color/text_color"
+            android:id="@+id/username"/>
+        <TextView
+            android:id="@+id/user_email"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="dwc@sinhagad.com"
+            android:textColor="@color/text_color"/>
+    </LinearLayout>
+
+
+            <androidx.appcompat.widget.AppCompatButton
+                android:layout_width="match_parent"
+                android:layout_margin="13dp"
+                android:padding="13dp"
+                android:layout_height="wrap_content"
+                android:text="Log Out "
+                android:layout_below="@id/linearLayout1"
+                android:background="@drawable/rectangle_background"
+                android:textAlignment="viewEnd"/>
+
+
+
+
+
+
+</RelativeLayout>

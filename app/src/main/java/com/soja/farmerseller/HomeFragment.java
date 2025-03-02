@@ -1,5 +1,7 @@
 package com.soja.farmerseller;
 
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -41,9 +43,14 @@ public class HomeFragment extends Fragment {
         adapter = new ProductSellAdapter(soldProductsList, getContext());
         recyclerView.setAdapter(adapter);
 
+        SharedPreferences sharedPreferences = getActivity().getSharedPreferences("UserPrefs", Context.MODE_PRIVATE);
+        String userEmail = sharedPreferences.getString("user_email", "default_email@gmail.com");
+        String documentName = userEmail.replace(".", "_");
+        Toast.makeText(getContext(), documentName, Toast.LENGTH_SHORT).show();
+
         // Firestore Data Listener
-        listenerRegistration = firestore.collection("SellerDetails")
-                .document("ProductsPortfolio")
+        listenerRegistration = firestore.collection("MarketPlace")
+                .document(documentName)
                 .addSnapshotListener((snapshot, error) -> {
                     if (error != null) {
                         Toast.makeText(getContext(), "Error: " + error.getMessage(), Toast.LENGTH_SHORT).show();
@@ -60,12 +67,13 @@ public class HomeFragment extends Fragment {
                                     if (entry.getValue() instanceof ArrayList<?>) {
                                         ArrayList<?> products = (ArrayList<?>) entry.getValue();
 
-                                        if (products.size() == 3) { // ✅ Ensure at least 4 elements exist
+                                        if (products.size() == 5) { // ✅ Ensure at least 4 elements exist
                                             String productName = products.get(0).toString();
-                                            String productSells = products.get(1).toString();
+                                            String productSells = products.get(4).toString();
+                                            String productImage = products.get(3).toString();
                                             String productEarnings = products.get(2).toString();
 
-                                            ProductSellsManager p = new ProductSellsManager(productName, productSells, productEarnings);
+                                            ProductSellsManager p = new ProductSellsManager(productName, productSells,productImage, productEarnings);
                                             soldProductsList.add(p);
                                         }
                                     }

@@ -4,10 +4,13 @@ import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.squareup.picasso.Picasso;
 
 import java.util.ArrayList;
 
@@ -31,7 +34,11 @@ public class ProductSellAdapter extends RecyclerView.Adapter<ProductSellAdapter.
         ProductSellsManager productSellsManager = productSellsManagerArrayList.get(position);
         holder.productName.setText(productSellsManager.getProductName());
         holder.productSells.setText("Total Sells : " + productSellsManager.getProductSells());
+        Picasso.get().load(productSellsManager.getImageUrl()).into(holder.productImage);
+
         holder.productEarnings.setText("Total Earnings :" +productSellsManager.getProductEarnings());
+
+
     }
 
     @Override
@@ -41,11 +48,13 @@ public class ProductSellAdapter extends RecyclerView.Adapter<ProductSellAdapter.
 
     public static class SellProductsViewHolder extends RecyclerView.ViewHolder {
         TextView productName,productSells,productEarnings;
+        ImageView productImage;
         public SellProductsViewHolder(@NonNull View itemView) {
             super(itemView);
             productName = itemView.findViewById(R.id.product_name);
             productSells = itemView.findViewById(R.id.product_sells);
             productEarnings = itemView.findViewById(R.id.product_earnings);
+            productImage = itemView.findViewById(R.id.product_image);
         }
     }
 }

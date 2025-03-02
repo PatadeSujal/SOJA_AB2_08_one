@@ -3,6 +3,7 @@ package com.soja.farmerseller;
 import static android.content.ContentValues.TAG;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -73,6 +74,10 @@ public class Login extends AppCompatActivity {
                         if (task.isSuccessful()) {
                             Log.d(TAG, "signInWithEmail:success");
                             FirebaseUser user = mAuth.getCurrentUser();
+                            SharedPreferences sharedPreferences = getSharedPreferences("UserPrefs", MODE_PRIVATE);
+                            SharedPreferences.Editor editor = sharedPreferences.edit();
+                            editor.putString("user_email", email); // Save email
+                            editor.apply();
                             Intent intent = new Intent(Login.this, MainActivity.class);
                             startActivity(intent);
 //                            finish(); // Close Login Activity after successful login

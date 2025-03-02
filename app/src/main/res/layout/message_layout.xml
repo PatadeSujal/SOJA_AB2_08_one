@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:layout_margin="12dp"
+    android:padding="16dp"
+    android:background="@drawable/rectangle_background">
+
+    <!-- Title -->
+    <TextView
+        android:id="@+id/senderTextView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Message for abc@gmail.com"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:textColor="#000000"
+        android:paddingBottom="8dp" />
+
+    <!-- Message -->
+    <TextView
+        android:id="@+id/senderMessage"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Give me some discount"
+        android:textSize="16sp"
+        android:textColor="#333333"
+        android:paddingBottom="16dp" />
+
+    <!-- Text Input for User -->
+    <EditText
+        android:id="@+id/userMessageEditText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Type your message here..."
+        android:textSize="14sp"
+        android:background="@android:drawable/editbox_background"
+        android:padding="12dp"
+        android:gravity="start"
+        android:textColor="#000000"
+        android:textColorHint="#888888" />
+
+    <!-- Send Button -->
+    <Button
+        android:id="@+id/sendButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Send"
+        android:textAllCaps="false"
+        android:backgroundTint="#007AFF"
+        android:textColor="#FFFFFF"
+        android:textSize="16sp"
+        android:layout_marginTop="16dp"
+        android:padding="12dp"/>
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="right"
+        android:id="@+id/timestampTextView"
+        android:text="12/12/23"/>
+</LinearLayout>

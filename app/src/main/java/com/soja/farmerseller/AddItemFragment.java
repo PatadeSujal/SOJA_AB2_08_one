@@ -1,9 +1,10 @@
 package com.soja.farmerseller;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -11,18 +12,18 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
-import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
-import com.google.firebase.firestore.DocumentReference;
-import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.SetOptions;
 import com.soja.farmerseller.R;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -49,8 +50,6 @@ public class AddItemFragment extends Fragment {
     private ImageView productImage;
     private EditText productName, productDescription, productPrice;
     private Button selectImageButton, addProductButton;
-//    private ProgressBar progressBar;
-
     private Uri imageUri;
     private FirebaseFirestore db;
 
@@ -69,7 +68,6 @@ public class AddItemFragment extends Fragment {
         productPrice = view.findViewById(R.id.productPrice);
         selectImageButton = view.findViewById(R.id.selectImage);
         addProductButton = view.findViewById(R.id.submitProductBtn);
-//        progressBar = view.findViewById(R.id.progressBar);
 
         db = FirebaseFirestore.getInstance();
 
@@ -92,7 +90,7 @@ public class AddItemFragment extends Fragment {
 
         if (requestCode == PICK_IMAGE_REQUEST && resultCode == Activity.RESULT_OK && data != null && data.getData() != null) {
             imageUri = data.getData();
-            productImage.setImageURI(imageUri); // ✅ Directly set image URI
+            productImage.setImageURI(imageUri);
         }
     }
 
@@ -103,7 +101,6 @@ public class AddItemFragment extends Fragment {
         }
 
         try {
-            // Read image data using InputStream for all Android versions
             InputStream inputStream = getContext().getContentResolver().openInputStream(imageUri);
             ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
             byte[] buffer = new byte[1024];
@@ -141,7 +138,7 @@ public class AddItemFragment extends Fragment {
                         String responseBody = response.body().string();
                         String imageUrl = extractImageUrl(responseBody);
                         if (imageUrl != null) {
-                            saveProductToFirestore(imageUrl, imageUrl);
+                            saveProductToFirestore(imageUrl);
                         } else {
                             getActivity().runOnUiThread(() -> {
                                 Toast.makeText(getContext(), "Failed to get image URL", Toast.LENGTH_SHORT).show();
@@ -160,67 +157,48 @@ public class AddItemFragment extends Fragment {
             getActivity().runOnUiThread(() -> {
                 Toast.makeText(getContext(), "Error reading image: " + e.getMessage(), Toast.LENGTH_SHORT).show();
             });
-        } catch (Exception e) {
-            e.printStackTrace();
-            getActivity().runOnUiThread(() -> {
-                Toast.makeText(getContext(), "Unexpected error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-            });
         }
     }
 
     private String extractImageUrl(String jsonResponse) {
         try {
-            org.json.JSONObject jsonObject = new org.json.JSONObject(jsonResponse);
+            JSONObject jsonObject = new JSONObject(jsonResponse);
             return jsonObject.getJSONObject("data").getString("url");
-        } catch (org.json.JSONException e) {
+        } catch (JSONException e) {
             e.printStackTrace();
             return null;
         }
     }
 
-    private void saveProductToFirestore(String productId, String imageUrl) {
+    private void saveProductToFirestore(String imageUrl) {
         String name = productName.getText().toString().trim();
         String description = productDescription.getText().toString().trim();
         String price = productPrice.getText().toString().trim();
+        String totalSells = "0";
 
         if (name.isEmpty() || description.isEmpty() || price.isEmpty()) {
             Toast.makeText(getContext(), "All fields are required!", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        // Create product data array
-        List<String> productData = Arrays.asList(
-                name,
-                description,
-                price,
-                imageUrl
-        );
-
-        // Create update object
+        List<String> productData = Arrays.asList(name, description, price, imageUrl,totalSells);
         Map<String, Object> updates = new HashMap<>();
-        updates.put("productId." + productId, productData);
 
-        db.collection("SellerDetails").document("Products")
-                .update(updates)
+        int productNumber = getNextProductNumber();
+        updates.put("product" + productNumber, productData);
+
+        SharedPreferences sharedPreferences = getActivity().getSharedPreferences("UserPrefs", Context.MODE_PRIVATE);
+        String userEmail = sharedPreferences.getString("user_email", "default_email@gmail.com");
+        String documentName = userEmail.replace(".", "_");
+
+        db.collection("MarketPlace").document(documentName)
+                .set(updates, SetOptions.merge())
                 .addOnSuccessListener(aVoid -> {
                     clearForm();
                     Toast.makeText(getContext(), "Product added successfully!", Toast.LENGTH_SHORT).show();
                 })
-                .addOnFailureListener(e -> {
-                    // If document doesn't exist, create it first
-                    Map<String, Object> initialData = new HashMap<>();
-                    initialData.put("productId", new HashMap<>());
-                    initialData.put("productId." + productId, productData);
-
-                    db.collection("SellerDetails").document("Products")
-                            .set(initialData, SetOptions.merge())
-                            .addOnSuccessListener(aVoid -> {
-                                clearForm();
-                                Toast.makeText(getContext(), "Product added successfully!", Toast.LENGTH_SHORT).show();
-                            })
-                            .addOnFailureListener(ex -> {
-                                Toast.makeText(getContext(), "Error: " + ex.getMessage(), Toast.LENGTH_SHORT).show();
-                            });
+                .addOnFailureListener(ex -> {
+                    Toast.makeText(getContext(), "Error: " + ex.getMessage(), Toast.LENGTH_SHORT).show();
                 });
     }
 
@@ -232,5 +210,11 @@ public class AddItemFragment extends Fragment {
         imageUri = null;
     }
 
-
+    private int getNextProductNumber() {
+        SharedPreferences sharedPreferences = getActivity().getSharedPreferences("UserPrefs", Context.MODE_PRIVATE);
+        int productCount = sharedPreferences.getInt("product_count", 0);
+        productCount++;
+        sharedPreferences.edit().putInt("product_count", productCount).apply();
+        return productCount;
+    }
 }

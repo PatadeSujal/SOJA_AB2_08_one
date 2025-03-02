@@ -1,14 +1,18 @@
 package com.soja.farmerseller;
 
 public class ProductSellsManager {
-    String productName,productSells,productEarnings;
-    public ProductSellsManager(){}
-    public ProductSellsManager(String productName, String productSells, String productEarnings) {
+    String productName,productSells,productEarnings,image;
+    public ProductSellsManager(){ }
+    public ProductSellsManager(String productName, String productSells,String image, String productEarnings) {
         this.productName = productName;
         this.productSells = productSells;
+        this.image = image;
         this.productEarnings = productEarnings;
     }
 
+    public String getImageUrl() {
+        return image;
+    }
     public String getProductName() {
         return productName;
     }

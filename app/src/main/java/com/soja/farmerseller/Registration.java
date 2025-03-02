@@ -3,6 +3,7 @@ package com.soja.farmerseller;
 import static android.content.ContentValues.TAG;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -70,6 +71,10 @@ public class Registration extends AppCompatActivity {
                         if (task.isSuccessful()) {
                             // Sign in success, update UI with the signed-in user's information
                             Log.d(TAG, "createUserWithEmail:success");
+                            SharedPreferences sharedPreferences = getSharedPreferences("UserPrefs", MODE_PRIVATE);
+                            SharedPreferences.Editor editor = sharedPreferences.edit();
+                            editor.putString("user_email", email);
+                            editor.apply();
                             FirebaseUser user = mAuth.getCurrentUser();
                             Intent intent = new Intent(Registration.this, MainActivity.class);
                             startActivity(intent);
