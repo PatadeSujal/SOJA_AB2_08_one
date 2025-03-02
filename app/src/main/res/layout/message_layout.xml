@@ -30,7 +30,7 @@
 
     <!-- Text Input for User -->
     <EditText
-        android:id="@+id/userMessageEditText"
+        android:id="@+id/messageInput"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:hint="Type your message here..."
